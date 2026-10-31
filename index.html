@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <title>TIET AR Test</title>
+</head>
+<body style="font-family:sans-serif;text-align:center">
+  <h2>TIET AR Test</h2>
+  <model-viewer src="avatar.glb" autoplay animation-name="Wave"
+    camera-controls style="width:100%;height:300px"></model-viewer>
+  <p><button onclick="getGPS()">Test GPS</button></p>
+  <p id="out">Tap the button</p>
+  <script>
+    function getGPS() {
+      navigator.geolocation.watchPosition(
+        p => out.textContent = p.coords.latitude.toFixed(5) + ", " +
+             p.coords.longitude.toFixed(5) + " (±" + Math.round(p.coords.accuracy) + " m)",
+        e => out.textContent = "Error: " + e.message,
+        { enableHighAccuracy: true });
+    }
+  </script>
+</body>
+</html>

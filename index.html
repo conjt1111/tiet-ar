@@ -1,24 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <title>TIET AR Test</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIET Virtual Guide</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #fff; height: 100vh; overflow: hidden; }
+  model-viewer { width: 100%; height: 100%; }
+  button { font-size: 16px; padding: 12px 18px; border: 0; border-radius: 10px; background: #2563eb; color: #fff; }
+  button:disabled { opacity: .5; }
+  #start { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: 16px; z-index: 10; }
+  #bar { width: 60%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+  #fill { height: 100%; width: 0; background: #38bdf8; }
+  #mute { position: fixed; top: 12px; right: 12px; z-index: 6; padding: 8px 12px; background: #334155; }
+  #panel { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 420px; margin: auto;
+           background: #fff; color: #111; border-radius: 14px; box-shadow: 0 8px 30px #0008; display: none; z-index: 5; }
+  #head { padding: 10px 14px; background: #1e293b; color: #fff; border-radius: 14px 14px 0 0;
+          display: flex; justify-content: space-between; align-items: center; touch-action: none; cursor: grab; }
+  #head button { padding: 2px 10px; background: #334155; }
+  #body { padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 45vh; overflow: auto; }
+  #body button.alt { background: #e2e8f0; color: #111; text-align: left; }
+  #body p { margin: 0; }
+</style>
 </head>
-<body style="font-family:sans-serif;text-align:center">
-  <h2>TIET AR Test</h2>
-  <model-viewer src="avatar.glb" autoplay animation-name="Wave"
-    camera-controls style="width:100%;height:300px"></model-viewer>
-  <p><button onclick="getGPS()">Test GPS</button></p>
-  <p id="out">Tap the button</p>
-  <script>
-    function getGPS() {
-      navigator.geolocation.watchPosition(
-        p => out.textContent = p.coords.latitude.toFixed(5) + ", " +
-             p.coords.longitude.toFixed(5) + " (±" + Math.round(p.coords.accuracy) + " m)",
-        e => out.textContent = "Error: " + e.message,
-        { enableHighAccuracy: true });
-    }
-  </script>
+<body>
+
+<model-viewer id="mv" src="avatar.glb" autoplay camera-controls></model-viewer>
+
+<div id="start">
+  <h2>TIET Virtual Guide</h2>
+  <div id="bar"><div id="fill"></div></div>
+  <button id="startBtn" disabled>Loading...</button>
+</div>
+
+<button id="mute">Sound: on</button>
+
+<div id="panel">
+  <div id="head"><span>Virtual Assistant</span><button id="min">_</button></div>
+  <div id="body"></div>
+</div>
+
+<script>
+// ===== EDIT THESE =====
+const SCRIPT = {
+  greeting: "Hello! I'm your virtual guide.",
+  welcome: "Welcome to TIET.",
+  prompt: "How can I help you today? Choose Location Guidance or Information Desk.",
+  arrival: "You have arrived at your destination."
+};
+const FAQ = [
+  { q: "Admissions", a: "Replace this with your admissions answer." },
+  { q: "Fees",       a: "Replace this with your fees answer." },
+  { q: "Courses",    a: "Replace this with your courses answer." },
+  { q: "Contact",    a: "Replace this with your contact answer." },
+  { q: "Timings",    a: "Replace this with your office timings." }
+];
+const DEST = [
+  { name: "Main Gate",       lat: 30.3574, lng: 76.3649 },
+  { name: "Admission Block", lat: 30.3544, lng: 76.3602 },
+  { name: "Library",         lat: 30.3558, lng: 76.3650 }
+];
+// ======================
+
+const $ = id => document.getElementById(id);
+const mv = $("mv"), body = $("body"), panel = $("panel");
+let muted = false, selected = null;
+
+// loading progress
+mv.addEventListener("progress", e => $("fill").style.width = (e.detail.totalProgress * 100) + "%");
+mv.addEventListener("load", () => { $("startBtn").disabled = false; $("startBtn").textContent = "Tap to start"; });
+mv.addEventListener("error", () => { $("startBtn").disabled = false; $("startBtn").textContent = "Tap to start (avatar failed)"; });
+
+// play an animation if the model has it
+function play(name) {
+  if (mv.availableAnimations && mv.availableAnimations.includes(name)) mv.animationName = name;
+}
+
+// speak with the browser's voice
+function speak(text) {
+  return new Promise(resolve => {
+    if (muted || !("speechSynthesis" in window)) return resolve();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-IN"; u.onend = resolve; u.onerror = resolve;
+    speechSynthesis.speak(u);
+  });
+}
+
+// small helpers to build the panel
+function btn(text, fn, cls) { const b = document.createElement("button"); b.textContent = text; if (cls) b.className = cls; b.onclick = fn; return b; }
+function para(text) { const p = document.createElement("p"); p.textContent = text; return p; }
+function show(...nodes) { body.replaceChildren(...nodes); }
+
+function showMenu() {
+  show(
+    para("How can I help you?"),
+    btn("Location Guidance", showLocations),
+    btn("Information Desk", showInfo)
+  );
+}
+function showLocations() {
+  show(
+    para("Where do you want to go?"),
+    ...DEST.map(d => btn(d.name, () => chooseDest(d), "alt")),
+    btn("Back", showMenu, "alt")
+  );
+}
+function chooseDest(d) {
+  selected = d;               // Day 2: AR arrows will use this
+  show(para("Destination: " + d.name + ". AR arrows will be added on Day 2."), btn("Back", showLocations, "alt"));
+  speak("Navigating to " + d.name);
+}
+function showInfo() {
+  show(
+    para("Pick a topic:"),
+    ...FAQ.map(f => btn(f.q, () => {
+      show(para(f.a), btn("Back", showInfo, "alt"));
+      speak(f.a);
+    }, "alt")),
+    btn("Back to menu", showMenu, "alt")
+  );
+}
+
+// Tap to start: greeting sequence
+$("startBtn").onclick = async () => {
+  $("start").style.display = "none";
+  panel.style.display = "block";
+  showMenu();
+  play("Wave");
+  await speak(SCRIPT.greeting);
+  await speak(SCRIPT.welcome);
+  play("Idle");
+  await speak(SCRIPT.prompt);
+};
+
+// mute / skip
+$("mute").onclick = () => {
+  muted = !muted;
+  $("mute").textContent = "Sound: " + (muted ? "off" : "on");
+  if (muted) speechSynthesis.cancel();
+};
+
+// minimize panel
+$("min").onclick = () => { body.style.display = body.style.display === "none" ? "flex" : "none"; };
+
+// draggable panel
+let drag = null, tx = 0, ty = 0;
+$("head").addEventListener("pointerdown", e => { if (e.target.tagName === "BUTTON") return; drag = { x: e.clientX - tx, y: e.clientY - ty }; e.target.setPointerCapture(e.pointerId); });
+$("head").addEventListener("pointermove", e => { if (!drag) return; tx = e.clientX - drag.x; ty = e.clientY - drag.y; panel.style.transform = `translate(${tx}px,${ty}px)`; });
+$("head").addEventListener("pointerup", () => drag = null);
+</script>
 </body>
 </html>

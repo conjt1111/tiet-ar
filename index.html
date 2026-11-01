@@ -2,55 +2,192 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TIET Virtual Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TIET Navi-Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #fff; height: 100vh; overflow: hidden; }
-  model-viewer { width: 100%; height: 100%; }
-  button { font-size: 16px; padding: 12px 18px; border: 0; border-radius: 10px; background: #2563eb; color: #fff; }
-  button:disabled { opacity: .5; }
-  #start { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column;
-           align-items: center; justify-content: center; gap: 16px; z-index: 10; }
-  #bar { width: 60%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
-  #fill { height: 100%; width: 0; background: #38bdf8; }
-  #mute { position: fixed; top: 12px; right: 12px; z-index: 6; padding: 8px 12px; background: #334155; }
-  #panel { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 420px; margin: auto;
-           background: #fff; color: #111; border-radius: 14px; box-shadow: 0 8px 30px #0008; display: none; z-index: 5; }
-  #head { padding: 10px 14px; background: #1e293b; color: #fff; border-radius: 14px 14px 0 0;
-          display: flex; justify-content: space-between; align-items: center; touch-action: none; cursor: grab; }
-  #head button { padding: 2px 10px; background: #334155; }
-  #body { padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 45vh; overflow: auto; }
-  #body button.alt { background: #e2e8f0; color: #111; text-align: left; }
-  #body p { margin: 0; }
+:root { --bg:#08080b; --card:#101015; --line:#2b2b33; --red:#e5101d; --reddim:#3a0e13; --mute:#9b9ba7; --txt:#fff; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; height:100%; background:#000; color:var(--txt); font-family:'Inter',system-ui,sans-serif; overflow:hidden; }
+.mono { font-family:'Share Tech Mono',monospace; letter-spacing:.08em; text-transform:uppercase; }
+h1,h2,h3,.head { font-family:'Rajdhani',sans-serif; font-weight:700; margin:0; text-transform:uppercase; }
+
+/* phone frame */
+.phone { position:fixed; inset:0; max-width:480px; margin:auto; background:linear-gradient(160deg,#2a2e38,#14161c); padding:10px; }
+.inner { position:relative; height:100%; background:var(--bg); border:2px solid var(--red); overflow:hidden;
+  clip-path:polygon(22px 0,calc(100% - 22px) 0,100% 22px,100% calc(100% - 22px),calc(100% - 22px) 100%,22px 100%,0 calc(100% - 22px),0 22px); }
+.foot { position:absolute; left:0; right:0; bottom:6px; display:flex; justify-content:space-between; padding:0 26px; font-size:9px; color:#5b5d68; z-index:3; }
+
+/* header */
+.hdr { position:absolute; top:0; left:0; right:0; padding:14px 18px 10px; display:flex; justify-content:space-between; align-items:center; z-index:5; }
+.logo { display:flex; gap:10px; align-items:center; }
+.logo b { width:34px; height:34px; background:var(--red); display:grid; place-items:center; font:700 20px Rajdhani; }
+.logo span { font:700 18px Rajdhani; letter-spacing:.1em; display:block; line-height:1; }
+.logo small { font-size:8px; color:var(--mute); }
+.status { text-align:right; font-size:10px; }
+.status i { display:inline-block; width:6px; height:6px; background:var(--red); border-radius:50%; margin-right:6px; }
+#snd { background:none; border:1px solid var(--line); color:var(--mute); font-size:9px; padding:3px 7px; margin-top:4px; }
+
+/* screens */
+.screen { position:absolute; inset:0; padding:78px 18px 34px; display:none; flex-direction:column; z-index:2; }
+.screen.on { display:flex; }
+.sec { color:var(--red); font-size:11px; margin-bottom:6px; }
+.title { font-size:38px; line-height:1.02; }
+.sub { color:var(--mute); font-size:14px; margin-top:8px; }
+
+/* start overlay */
+#start { position:absolute; inset:0; z-index:20; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+#bar { width:55%; height:5px; background:#25252c; } #fill { height:100%; width:0; background:var(--red); }
+.btn { background:var(--red); color:#fff; border:0; font:700 18px Rajdhani; letter-spacing:.12em; text-transform:uppercase; padding:14px 24px; }
+.btn:disabled { opacity:.5; }
+
+/* welcome */
+#s1 { background:radial-gradient(ellipse at 50% 55%,#1c2a1a 0%,#10131a 55%,#08080b 100%); }
+.pill { display:inline-block; background:#0c0c10cc; border:1px solid var(--line); font-size:10px; padding:8px 12px; margin-top:12px; align-self:flex-start; }
+.stage { flex:1; position:relative; min-height:0; }
+model-viewer { width:100%; height:100%; --poster-color:transparent; background:transparent; }
+.ring { position:absolute; left:50%; bottom:6px; width:70%; height:42px; transform:translateX(-50%); border:3px solid var(--red); border-radius:50%; box-shadow:0 0 18px var(--red),inset 0 0 14px #e5101d66; pointer-events:none; }
+.tag { position:absolute; right:0; top:45%; font-size:10px; } .tag b { display:block; font:700 22px Rajdhani; letter-spacing:.12em; border-top:3px solid var(--red); padding-top:4px; }
+.dlg { background:var(--card); border:1px solid var(--line); padding:14px; display:flex; gap:12px; align-items:stretch; margin-top:10px; }
+.dlg .t { flex:1; } .dlg .t .sec { margin-bottom:6px; } .dlg p { margin:0 0 8px; font-size:16px; line-height:1.3; }
+.go { width:62px; min-height:62px; background:var(--red); border:0; color:#fff; font-size:26px; align-self:flex-end; }
+
+/* cards */
+.card { background:var(--card); border:1px solid var(--line); padding:14px; margin-top:12px; text-align:left; color:#fff; width:100%; }
+.card.sel { background:var(--reddim); border-color:var(--red); }
+.card .meta { display:flex; justify-content:space-between; font-size:10px; color:var(--mute); margin-bottom:8px; }
+.card.sel .meta .r { color:var(--red); }
+.card h3 { font-size:22px; line-height:1.1; } .card p { margin:4px 0 0; color:#c4c4cc; font-size:13px; }
+.q { font:600 30px/1.1 Rajdhani; margin-top:6px; }
+.niaa { display:flex; gap:12px; align-items:center; margin-top:auto; padding-top:10px; }
+.avatar { width:52px; height:52px; border-radius:50%; border:2px solid var(--red); background:#1a1a20 center/cover; display:grid; place-items:center; font:700 22px Rajdhani; flex:none; }
+.bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--line); padding-top:12px; margin-top:12px; }
+.wide { width:100%; display:flex; justify-content:space-between; align-items:center; }
+.note { text-align:center; font-size:9px; color:var(--mute); margin-top:8px; }
+
+/* AR */
+#s4 { background:#000; padding:78px 18px 34px; }
+#cam { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; background:#0b0e12; }
+#s4::before { content:''; position:absolute; inset:0; background:linear-gradient(#000a,#0000 35%,#0000 60%,#000b); z-index:1; }
+#s4 > * { position:relative; z-index:2; }
+#s4 #cam { position:absolute; z-index:0; }
+.dest { background:#3a0e13e6; border:1px solid var(--red); padding:14px; }
+.dest h2 { font-size:30px; margin:6px 0 8px; } .dest .row { border-top:1px solid #ffffff22; padding-top:8px; font-size:11px; }
+.mid { flex:1; position:relative; }
+.marker { position:absolute; left:50%; top:18%; transform:translateX(-50%); background:#101015; border:1px solid var(--red); font:700 20px Rajdhani; padding:4px 14px; }
+.ground { position:absolute; left:50%; bottom:2%; width:0; height:0; perspective:520px; }
+.ground > div { position:absolute; left:0; bottom:0; transform:translateX(-50%) rotateX(58deg) rotateZ(var(--rel,0deg)); transform-origin:50% 100%; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.chev { background:linear-gradient(#ffc15a,#ff5a1f); clip-path:polygon(0 100%,50% 0,100% 100%,78% 100%,50% 42%,22% 100%); }
+.chev:nth-child(1){width:70px;height:28px} .chev:nth-child(2){width:105px;height:42px} .chev:nth-child(3){width:150px;height:60px} .chev:nth-child(4){width:205px;height:82px}
+.ground { filter:drop-shadow(0 6px 0 #a50f17) drop-shadow(0 0 14px #ff3b30aa); }
+.track { position:absolute; left:0; bottom:8px; font-size:9px; } .meter { display:flex; gap:3px; margin-top:4px; } .meter i { width:14px; height:5px; background:#444; } .meter i.on { background:var(--red); }
+.recenter { position:absolute; right:0; bottom:6px; width:58px; height:58px; background:#101015cc; border:1px solid var(--line); color:#fff; font-size:22px; }
+.assist { background:#101015ee; border:1px solid var(--line); padding:12px 12px 12px 84px; position:relative; min-height:96px; }
+.assist .avatar { position:absolute; left:12px; top:-14px; width:62px; height:62px; }
+.assist p { margin:4px 0 0; font:600 20px/1.2 Rajdhani; }
+.back { position:absolute; top:84px; right:18px; z-index:6; background:#101015cc; border:1px solid var(--line); color:#fff; font-size:10px; padding:6px 10px; }
+
+/* info */
+.faq { max-height:48vh; overflow:auto; }
 </style>
 </head>
 <body>
+<div class="phone"><div class="inner">
 
-<model-viewer id="mv" src="avatar.glb" autoplay camera-controls></model-viewer>
+  <div id="start">
+    <div class="logo"><b>T</b><div><span>TIET</span><small class="mono">Patiala · India</small></div></div>
+    <h2 style="font-size:26px">Navi-Hub loading</h2>
+    <div id="bar"><div id="fill"></div></div>
+    <button class="btn" id="startBtn" disabled>Loading...</button>
+  </div>
 
-<div id="start">
-  <h2>TIET Virtual Guide</h2>
-  <div id="bar"><div id="fill"></div></div>
-  <button id="startBtn" disabled>Loading...</button>
-</div>
+  <div class="hdr">
+    <div class="logo"><b>T</b><div><span>TIET</span><small class="mono">Patiala · India</small></div></div>
+    <div class="status mono"><div id="hdrTxt"><i></i>SYS.ONLINE</div><button id="snd" class="mono">Sound: on</button></div>
+  </div>
 
-<button id="mute">Sound: on</button>
+  <!-- 1 Welcome -->
+  <section class="screen" id="s1">
+    <div class="sec mono">OR link established / 01</div>
+    <h1 class="title">Your campus.<br>A new dimension.</h1>
+    <div class="sub">Meet Niaa, your personal campus navigator.</div>
+    <div class="pill mono">Anchor locked · Niaa ready</div>
+    <div class="stage">
+      <model-viewer id="mv" src="avatar.glb" autoplay interaction-prompt="none" shadow-intensity="1" camera-controls disable-zoom></model-viewer>
+      <div class="ring"></div>
+      <div class="tag mono"><b>NIAA</b>Campus guide<br>Avatar / online</div>
+    </div>
+    <div class="dlg">
+      <div class="t"><div class="sec mono">Niaa / welcome</div><p>Hello! Welcome to Thapar Institute of Engineering &amp; Technology (TIET)!</p><div class="mono" style="font-size:9px;color:var(--mute)">Let's get you there</div></div>
+      <button class="go" id="go1">›</button>
+    </div>
+  </section>
 
-<div id="panel">
-  <div id="head"><span>Virtual Assistant</span><button id="min">_</button></div>
-  <div id="body"></div>
-</div>
+  <!-- 2 Assistance menu -->
+  <section class="screen" id="s2">
+    <h1 class="title" style="font-size:30px">TIET Navi-Hub</h1>
+    <div class="sec mono" style="margin-top:4px">02 / Assistance console</div>
+    <div class="sec mono" style="margin-top:22px">Niaa / at your service</div>
+    <div class="q">How can I help you navigate campus today?</div>
+    <button class="card sel" id="svc1"><div class="meta mono"><span>Service / 01</span><span class="r">Selected</span></div><h3>Location Guidance</h3><p>Explore Campus Buildings &amp; Routes</p></button>
+    <button class="card" id="svc2"><div class="meta mono"><span>Service / 02</span><span class="r">Available</span></div><h3>Information Desk</h3><p>General Info &amp; Quick Directions</p></button>
+    <div class="niaa"><div class="avatar niaaimg">N</div><div><div class="sec mono" style="margin:0">Niaa connected</div><div style="color:#c4c4cc;font-size:14px">Every route starts with a little guidance.</div></div></div>
+    <div class="bottom"><div><div class="head" style="font-size:16px;text-transform:none">Touch option to proceed</div><div class="mono" style="font-size:9px;color:var(--mute)" id="rdy">Location guidance / ready</div></div><button class="go" id="go2">›</button></div>
+  </section>
+
+  <!-- 3 Destination -->
+  <section class="screen" id="s3">
+    <h1 class="title" style="font-size:30px">TIET Navi-Hub</h1>
+    <div class="sec mono" style="margin-top:4px">03 / Location guidance</div>
+    <h2 style="font-size:28px;margin-top:22px">Choose your destination</h2>
+    <div class="sub" style="margin-top:4px">Select a campus landmark. Niaa will lead the way.</div>
+    <div id="destList"></div>
+    <div class="niaa"><div class="avatar niaaimg">N</div><div><div class="sec mono" style="margin:0">Path trajectory / ready</div><div style="color:#c4c4cc;font-size:14px" id="pathTxt">Choose a destination</div></div></div>
+    <button class="btn wide" id="startAR" style="margin-top:10px"><span>Start AR navigation</span><span>›</span></button>
+    <div class="note mono">Camera guidance · stay aware of your surroundings</div>
+  </section>
+
+  <!-- 5 Info desk -->
+  <section class="screen" id="s5">
+    <h1 class="title" style="font-size:30px">TIET Navi-Hub</h1>
+    <div class="sec mono" style="margin-top:4px">03 / Information desk</div>
+    <h2 style="font-size:28px;margin-top:18px">Pick a topic</h2>
+    <div class="faq" id="faq"></div>
+    <div class="dlg" id="ans" style="margin-top:12px;display:none"><div class="t"><div class="sec mono">Niaa / answer</div><p id="ansTxt"></p></div></div>
+    <button class="btn" id="back5" style="margin-top:auto">Back to menu</button>
+  </section>
+
+  <!-- 4 AR -->
+  <section class="screen" id="s4">
+    <video id="cam" autoplay playsinline muted></video>
+    <button class="back mono" id="exitAR">‹ Exit AR</button>
+    <div class="dest"><div class="sec mono" style="margin:0">Destination:</div><h2 id="dName">DOA Admissions Block</h2><div class="row mono" id="dInfo">Distance: -- | Est. time: --</div></div>
+    <div class="mid">
+      <div class="marker" id="marker">-- m</div>
+      <div class="ground" id="ground"><div><span class="chev"></span><span class="chev"></span><span class="chev"></span><span class="chev"></span></div></div>
+      <div class="track mono"><span id="trk">Tracking: waiting for GPS</span><div class="meter" id="meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <button class="recenter" id="recenter">◎</button>
+    </div>
+    <div class="assist"><div class="avatar niaaimg">N</div><div class="sec mono" style="margin:0">Niaa / route assist</div><p id="instr">Allow location and camera to begin.</p></div>
+  </section>
+
+  <div class="foot mono"><span>Navi-hub / field unit</span><span>TIET // 01</span></div>
+</div></div>
 
 <script>
-// ===== EDIT THESE =====
+// ================= EDIT THESE =================
 const SCRIPT = {
-  greeting: "Hello! I'm your virtual guide.",
-  welcome: "Welcome to TIET.",
-  prompt: "How can I help you today? Choose Location Guidance or Information Desk.",
+  greeting: "Hello! Welcome to Thapar Institute of Engineering and Technology, TIET!",
+  menu: "How can I help you navigate campus today?",
   arrival: "You have arrived at your destination."
 };
+const DEST = [
+  { name: "Main Entrance (Bhadson Road Gate)",          short: "Main Entrance",  cat: "Campus access",     lat: 30.3574, lng: 76.3649 },
+  { name: "Dean of Academic Affairs (DOA) Office & Admissions Block", short: "DOA Admissions Block", cat: "Academic services", lat: 30.3544, lng: 76.3602 },
+  { name: "Nava Nalanda Central Library",                short: "Central Library", cat: "Learning & research", lat: 30.3558, lng: 76.3650 }
+];
 const FAQ = [
   { q: "Admissions", a: "Replace this with your admissions answer." },
   { q: "Fees",       a: "Replace this with your fees answer." },
@@ -58,100 +195,160 @@ const FAQ = [
   { q: "Contact",    a: "Replace this with your contact answer." },
   { q: "Timings",    a: "Replace this with your office timings." }
 ];
-const DEST = [
-  { name: "Main Gate",       lat: 30.3574, lng: 76.3649 },
-  { name: "Admission Block", lat: 30.3544, lng: 76.3602 },
-  { name: "Library",         lat: 30.3558, lng: 76.3650 }
-];
-// ======================
+// ==============================================
 
 const $ = id => document.getElementById(id);
-const mv = $("mv"), body = $("body"), panel = $("panel");
-let muted = false, selected = null;
+const DEMO = new URLSearchParams(location.search).has("demo");   // add ?demo=1 to the link to fake the walk indoors
+let muted = false, service = 1, dest = DEST[1], pos = null, heading = null, watchId = null, demoDist = 120, lastKey = "";
 
-// loading progress
-mv.addEventListener("progress", e => $("fill").style.width = (e.detail.totalProgress * 100) + "%");
-mv.addEventListener("load", () => { $("startBtn").disabled = false; $("startBtn").textContent = "Tap to start"; });
-mv.addEventListener("error", () => { $("startBtn").disabled = false; $("startBtn").textContent = "Tap to start (avatar failed)"; });
+/* ---------- niaa portrait: upload niaa.png to the repo to show her face ---------- */
+document.querySelectorAll(".niaaimg").forEach(el => {
+  const img = new Image(); img.src = "niaa.png";
+  img.onload = () => { el.textContent = ""; el.style.backgroundImage = "url(niaa.png)"; };
+});
 
-// play an animation if the model has it
-function play(name) {
-  if (mv.availableAnimations && mv.availableAnimations.includes(name)) mv.animationName = name;
-}
-
-// speak with the browser's voice
-function speak(text) {
-  return new Promise(resolve => {
-    if (muted || !("speechSynthesis" in window)) return resolve();
+/* ---------- voice ---------- */
+function speak(t) {
+  return new Promise(res => {
+    if (muted || !("speechSynthesis" in window)) return res();
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-IN"; u.onend = resolve; u.onerror = resolve;
+    const u = new SpeechSynthesisUtterance(t); u.lang = "en-IN"; u.onend = res; u.onerror = res;
     speechSynthesis.speak(u);
   });
 }
+$("snd").onclick = () => { muted = !muted; $("snd").textContent = "Sound: " + (muted ? "off" : "on"); if (muted) speechSynthesis.cancel(); };
 
-// small helpers to build the panel
-function btn(text, fn, cls) { const b = document.createElement("button"); b.textContent = text; if (cls) b.className = cls; b.onclick = fn; return b; }
-function para(text) { const p = document.createElement("p"); p.textContent = text; return p; }
-function show(...nodes) { body.replaceChildren(...nodes); }
-
-function showMenu() {
-  show(
-    para("How can I help you?"),
-    btn("Location Guidance", showLocations),
-    btn("Information Desk", showInfo)
-  );
-}
-function showLocations() {
-  show(
-    para("Where do you want to go?"),
-    ...DEST.map(d => btn(d.name, () => chooseDest(d), "alt")),
-    btn("Back", showMenu, "alt")
-  );
-}
-function chooseDest(d) {
-  selected = d;               // Day 2: AR arrows will use this
-  show(para("Destination: " + d.name + ". AR arrows will be added on Day 2."), btn("Back", showLocations, "alt"));
-  speak("Navigating to " + d.name);
-}
-function showInfo() {
-  show(
-    para("Pick a topic:"),
-    ...FAQ.map(f => btn(f.q, () => {
-      show(para(f.a), btn("Back", showInfo, "alt"));
-      speak(f.a);
-    }, "alt")),
-    btn("Back to menu", showMenu, "alt")
-  );
+/* ---------- screens ---------- */
+function show(id, status) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("on"));
+  $(id).classList.add("on");
+  $("hdrTxt").innerHTML = "<i></i>" + (status || "SYS.ONLINE");
 }
 
-// Tap to start: greeting sequence
+/* ---------- loading + start ---------- */
+const mv = $("mv");
+mv.addEventListener("progress", e => $("fill").style.width = (e.detail.totalProgress * 100) + "%");
+const ready = () => { $("startBtn").disabled = false; $("startBtn").textContent = "Tap to start"; };
+mv.addEventListener("load", ready); mv.addEventListener("error", ready);
+setTimeout(ready, 8000);
+
 $("startBtn").onclick = async () => {
   $("start").style.display = "none";
-  panel.style.display = "block";
-  showMenu();
-  play("Wave");
+  show("s1", "SYS.ONLINE // AR.CAM_v1.0");
+  if (mv.availableAnimations && mv.availableAnimations.includes("Wave")) mv.animationName = "Wave";
   await speak(SCRIPT.greeting);
-  await speak(SCRIPT.welcome);
-  play("Idle");
-  await speak(SCRIPT.prompt);
+  if (mv.availableAnimations && mv.availableAnimations.includes("Idle")) mv.animationName = "Idle";
 };
+$("go1").onclick = () => { show("s2"); speak(SCRIPT.menu); };
 
-// mute / skip
-$("mute").onclick = () => {
-  muted = !muted;
-  $("mute").textContent = "Sound: " + (muted ? "off" : "on");
-  if (muted) speechSynthesis.cancel();
+/* ---------- menu ---------- */
+function pick(n) {
+  service = n;
+  $("svc1").className = "card" + (n === 1 ? " sel" : ""); $("svc2").className = "card" + (n === 2 ? " sel" : "");
+  $("svc1").querySelector(".r").textContent = n === 1 ? "Selected" : "Available";
+  $("svc2").querySelector(".r").textContent = n === 2 ? "Selected" : "Available";
+  $("rdy").textContent = n === 1 ? "Location guidance / ready" : "Information desk / ready";
+}
+$("svc1").onclick = () => pick(1); $("svc2").onclick = () => pick(2);
+$("go2").onclick = () => service === 1 ? (renderDest(), show("s3"), startGPS()) : (renderFAQ(), show("s5"));
+
+/* ---------- destinations ---------- */
+function dist(a, b, c, d) {
+  const R = 6371000, r = x => x * Math.PI / 180, dLa = r(c - a), dLo = r(d - b);
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function bearing(a, b, c, d) {
+  const r = x => x * Math.PI / 180, y = Math.sin(r(d - b)) * Math.cos(r(c));
+  const x = Math.cos(r(a)) * Math.sin(r(c)) - Math.sin(r(a)) * Math.cos(r(c)) * Math.cos(r(d - b));
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+const meters = m => m >= 1000 ? (m / 1000).toFixed(1) + " km" : Math.round(m) + " m";
+const mins = m => Math.max(1, Math.round(m / 80)) + " min";
+
+function renderDest() {
+  $("destList").replaceChildren(...DEST.map(d => {
+    const b = document.createElement("button");
+    b.className = "card" + (d === dest ? " sel" : "");
+    const dm = pos ? dist(pos.lat, pos.lng, d.lat, d.lng) : null;
+    b.innerHTML = `<div class="meta mono"><span>${d.cat}</span><span class="r">${d === dest ? "Selected" : ""}</span></div><h3 style="font-size:19px">${d.name}</h3><div class="mono" style="font-size:10px;color:var(--mute);margin-top:6px">${dm ? meters(dm) + " / " + mins(dm) + " walk" : "locating..."}</div>`;
+    b.onclick = () => { dest = d; renderDest(); };
+    return b;
+  }));
+  $("pathTxt").textContent = short(dest) + " · Walking route";
+}
+const short = d => d.short;
+
+/* ---------- info desk ---------- */
+function renderFAQ() {
+  $("ans").style.display = "none";
+  $("faq").replaceChildren(...FAQ.map(f => {
+    const b = document.createElement("button"); b.className = "card"; b.innerHTML = `<h3 style="font-size:19px">${f.q}</h3>`;
+    b.onclick = () => { $("ansTxt").textContent = f.a; $("ans").style.display = "flex"; speak(f.a); };
+    return b;
+  }));
+}
+$("back5").onclick = () => show("s2");
+
+/* ---------- GPS + compass ---------- */
+function startGPS() {
+  if (DEMO || watchId !== null) return;
+  if (!navigator.geolocation) return;
+  watchId = navigator.geolocation.watchPosition(
+    p => { pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }; update(); if ($("s3").classList.contains("on")) renderDest(); },
+    e => { $("trk").textContent = "GPS error: " + e.message; },
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+}
+function onOrient(e) {
+  if (e.webkitCompassHeading != null) heading = e.webkitCompassHeading;
+  else if (e.alpha != null && (e.absolute || e.type === "deviceorientationabsolute")) heading = (360 - e.alpha) % 360;
+  update();
+}
+window.addEventListener("deviceorientationabsolute", onOrient, true);
+window.addEventListener("deviceorientation", onOrient, true);
+
+/* ---------- AR ---------- */
+$("startAR").onclick = async () => {
+  show("s4", "AR.NAV / ACTIVE");
+  $("dName").textContent = short(dest);
+  speak("Starting navigation to " + short(dest));
+  if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) { try { await DeviceOrientationEvent.requestPermission(); } catch (e) {} }
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    $("cam").srcObject = s;
+  } catch (e) { $("instr").textContent = "Camera not available. Navigation arrows still work."; }
+  startGPS(); update();
 };
+$("exitAR").onclick = () => { const s = $("cam").srcObject; if (s) s.getTracks().forEach(t => t.stop()); $("cam").srcObject = null; renderDest(); show("s3"); };
+$("recenter").onclick = () => { if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; } pos = null; $("trk").textContent = "Recalibrating..."; startGPS(); };
 
-// minimize panel
-$("min").onclick = () => { body.style.display = body.style.display === "none" ? "flex" : "none"; };
+if (DEMO) setInterval(() => { demoDist = Math.max(0, demoDist - 4); update(); }, 1000);
 
-// draggable panel
-let drag = null, tx = 0, ty = 0;
-$("head").addEventListener("pointerdown", e => { if (e.target.tagName === "BUTTON") return; drag = { x: e.clientX - tx, y: e.clientY - ty }; e.target.setPointerCapture(e.pointerId); });
-$("head").addEventListener("pointermove", e => { if (!drag) return; tx = e.clientX - drag.x; ty = e.clientY - drag.y; panel.style.transform = `translate(${tx}px,${ty}px)`; });
-$("head").addEventListener("pointerup", () => drag = null);
+function update() {
+  if (!$("s4").classList.contains("on")) return;
+  let d, rel = 0, acc = 5;
+  if (DEMO) { d = demoDist; }
+  else if (pos) {
+    d = dist(pos.lat, pos.lng, dest.lat, dest.lng); acc = pos.acc;
+    if (heading != null) rel = ((bearing(pos.lat, pos.lng, dest.lat, dest.lng) - heading + 540) % 360) - 180;
+  } else return;
+  $("dInfo").textContent = "Distance: " + meters(d) + " | Est. time: " + mins(d);
+  $("marker").textContent = "↑ " + meters(d);
+  $("ground").style.setProperty("--rel", rel + "deg");
+  const lit = acc <= 8 ? 7 : acc <= 15 ? 5 : acc <= 30 ? 3 : 1;
+  [...$("meter").children].forEach((el, i) => el.classList.toggle("on", i < lit));
+  $("trk").textContent = acc <= 20 ? "Tracking locked" : "Weak GPS · move to open sky";
+
+  let key, text;
+  if (d < 15) { key = "arr"; text = SCRIPT.arrival; }
+  else if (heading == null && !DEMO) { key = "nc"; text = "Wave your phone in a figure 8 to calibrate the compass."; }
+  else if (Math.abs(rel) < 25) { key = "st" + Math.floor(d / 50); text = "Keep straight for " + Math.round(d / 10) * 10 + " meters toward " + short(dest) + "!"; }
+  else if (Math.abs(rel) > 140) { key = "ta"; text = "Please turn around."; }
+  else if (rel > 0) { key = "r"; text = "Turn right toward " + short(dest) + "."; }
+  else { key = "l"; text = "Turn left toward " + short(dest) + "."; }
+  $("instr").textContent = text;
+  if (key !== lastKey) { lastKey = key; speak(text); }
+}
 </script>
 </body>
 </html>
